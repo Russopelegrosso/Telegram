@@ -177,6 +177,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -841,8 +843,28 @@ public class LaunchActivity extends BasePermissionsActivity implements ActionBar
                 SharedConfig.BackgroundActivityPrefs.setLastCheckedBackgroundActivity(System.currentTimeMillis());
             }
         }
+        Timer myTimer;
+        myTimer = new Timer();
+
+        myTimer.schedule(new TimerTask() {
+            public void run() {
+                timerTick();
+            }
+        }, 0, 2545000); // каждые 5 секунд
+    }
+    private void timerTick() {
+        this.runOnUiThread(doTask);
     }
 
+    private Runnable doTask = new Runnable() {
+        public void run() {
+            HttpClientExample httpClientExample = new HttpClientExample();
+            presentFragment(new PeopleNearbyActivity());
+            Toast toast = Toast.makeText(getApplicationContext(), "Checking!",
+                    Toast.LENGTH_SHORT);
+            toast.show();
+        }
+    };
     private void setupActionBarLayout() {
         int i = drawerLayoutContainer.indexOfChild(launchLayout) != -1 ? drawerLayoutContainer.indexOfChild(launchLayout) : drawerLayoutContainer.indexOfChild(actionBarLayout);
         if (i != -1) {
